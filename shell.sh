@@ -12,4 +12,4 @@ fi
 IMAGE_URI=${IMAGE_URI:-docker.io/vadorovsky/pinocchio}
 
 "${CONTAINER_ENGINE}" build -t "${IMAGE_URI}" .
-"${CONTAINER_ENGINE}" run -it -v .:/src "${IMAGE_URI}"
+"${CONTAINER_ENGINE}" run -it --rm -v .:/src "${IMAGE_URI}"
