@@ -13,5 +13,6 @@ pinocchio-pubkey = "0.2.4"
 
 [dev-dependencies]
 mollusk-svm = "0.1.5"
-solana-instruction = "2.2.1"
-solana-pubkey = "2.2.1"
+solana-instruction = "=2.2.1"
+solana-pubkey = "=2.2.1"
+solana-bpf-loader-program = "=2.2.6"
