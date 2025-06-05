@@ -64,6 +64,7 @@ fn instruction_initialize(
 }
 
 fn instruction_exchange(
+    sender: &Pubkey,
     receiver: &Pubkey,
     receiver_ata: &Pubkey,
     escrow: &Pubkey,
@@ -90,6 +91,7 @@ fn instruction_exchange(
     data_with_discriminator.extend_from_slice(data);
 
     let ix_accounts = vec![
+        AccountMeta::new(*sender, false),
         AccountMeta::new(*receiver, true),
         AccountMeta::new(*receiver_ata, false),
         AccountMeta::new(*escrow, true),
@@ -103,6 +105,7 @@ fn instruction_exchange(
 fn instruction_cancel(
     sender: &Pubkey,
     sender_ata: &Pubkey,
+    receiver: &Pubkey,
     escrow: &Pubkey,
     escrow_ata: &Pubkey,
     bump: u8,
@@ -129,6 +132,7 @@ fn instruction_cancel(
     let ix_accounts = vec![
         AccountMeta::new(*sender, true),
         AccountMeta::new(*sender_ata, false),
+        AccountMeta::new(*receiver, false),
         AccountMeta::new(*escrow, true),
         AccountMeta::new(*escrow_ata, false),
         AccountMeta::new_readonly(*system_program, false),
@@ -281,6 +285,7 @@ fn test_escrow_exchange_success() {
     .unwrap();
 
     let sender = Pubkey::new_unique();
+    let sender_account = Account::new(1 * LAMPORTS_PER_SOL, 0, &system_program);
 
     let receiver = Pubkey::new_unique();
     let receiver_account = Account::new(1 * LAMPORTS_PER_SOL, 0, &system_program);
@@ -352,6 +357,7 @@ fn test_escrow_exchange_success() {
     .unwrap();
 
     let tx_accounts = &[
+        (sender, sender_account),
         (receiver, receiver_account),
         (receiver_ata, receiver_ata_account),
         (escrow, escrow_account),
@@ -362,6 +368,7 @@ fn test_escrow_exchange_success() {
     let res = mollusk.process_and_validate_instruction_chain(
         &[(
             &instruction_exchange(
+                &sender,
                 &receiver,
                 &receiver_ata,
                 &escrow,
@@ -429,6 +436,7 @@ fn test_escrow_cancel_success() {
     .unwrap();
 
     let receiver = Pubkey::new_unique();
+    let receiver_account = Account::new(1 * LAMPORTS_PER_SOL, 0, &system_program);
 
     let (escrow, bump) = Pubkey::find_program_address(
         &[
@@ -476,6 +484,7 @@ fn test_escrow_cancel_success() {
     let tx_accounts = &[
         (sender, sender_account),
         (sender_ata, sender_ata_account),
+        (receiver, receiver_account),
         (escrow, escrow_account),
         (escrow_ata, escrow_ata_account),
         (system_program, system_account),
@@ -486,6 +495,7 @@ fn test_escrow_cancel_success() {
             &instruction_cancel(
                 &sender,
                 &sender_ata,
+                &receiver,
                 &escrow,
                 &escrow_ata,
                 bump,

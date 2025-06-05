@@ -6,7 +6,7 @@ use pinocchio::{
     account_info::AccountInfo,
     no_allocator, nostd_panic_handler, program_entrypoint,
     program_error::ProgramError,
-    pubkey::Pubkey,
+    pubkey::{create_program_address, Pubkey},
     sysvars::{rent::Rent, Sysvar},
     ProgramResult,
 };
@@ -107,9 +107,32 @@ pub fn process_initialize(accounts: &[AccountInfo], instruction_data: &[u8]) -> 
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
+    // Check that `sender_ata` is owned by `sender`.
+    if TokenAccount::from_account_info(sender_ata)?.owner() != sender.key() {
+        return Err(ProgramError::IllegalOwner);
+    }
+    // Check that `escrow_ata` is owned by `escrow`.
+    if TokenAccount::from_account_info(escrow_ata)?.owner() != escrow.key() {
+        return Err(ProgramError::IllegalOwner);
+    }
+
     // Deserialize instruction data.
     let instruction_data: &InitializeInstructionData =
         unsafe { &*instruction_data.as_ptr().cast() };
+
+    // Check the seeds of `escrow`.
+    let escrow_pda = create_program_address(
+        &[
+            ESCROW_SEED.as_bytes(),
+            sender.key(),
+            receiver.key(),
+            &[instruction_data.bump],
+        ],
+        &ID,
+    )?;
+    if escrow.key() != &escrow_pda {
+        return Err(ProgramError::InvalidSeeds);
+    }
 
     // Create the escrow PDA.
     CreateAccount {
@@ -145,7 +168,8 @@ pub fn process_initialize(accounts: &[AccountInfo], instruction_data: &[u8]) -> 
 
 pub fn process_exchange(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     // Retrieve and validate the accounts.
-    let [receiver, receiver_ata, escrow, escrow_ata, _system_program, _token_program] = accounts
+    let [sender, receiver, receiver_ata, escrow, escrow_ata, _system_program, _token_program] =
+        accounts
     else {
         return Err(ProgramError::NotEnoughAccountKeys);
     };
@@ -157,6 +181,23 @@ pub fn process_exchange(accounts: &[AccountInfo], instruction_data: &[u8]) -> Pr
     // Check that `escrow_ata` is owned by `escrow`.
     if TokenAccount::from_account_info(escrow_ata)?.owner() != escrow.key() {
         return Err(ProgramError::IllegalOwner);
+    }
+
+    // Deserialize instruction data.
+    let instruction_data: &FinalizeInstructionData = unsafe { &*instruction_data.as_ptr().cast() };
+
+    // Check the seeds of `escrow`.
+    let escrow_pda = create_program_address(
+        &[
+            ESCROW_SEED.as_bytes(),
+            sender.key(),
+            receiver.key(),
+            &[instruction_data.bump],
+        ],
+        &ID,
+    )?;
+    if escrow.key() != &escrow_pda {
+        return Err(ProgramError::InvalidSeeds);
     }
 
     // Deserialize the escrow PDA.
@@ -184,7 +225,9 @@ pub fn process_exchange(accounts: &[AccountInfo], instruction_data: &[u8]) -> Pr
 
 pub fn process_cancel(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     // Retrieve and validate the accounts.
-    let [sender, sender_ata, escrow, escrow_ata, _system_program, _token_program] = accounts else {
+    let [sender, sender_ata, receiver, escrow, escrow_ata, _system_program, _token_program] =
+        accounts
+    else {
         return Err(ProgramError::NotEnoughAccountKeys);
     };
 
@@ -195,6 +238,23 @@ pub fn process_cancel(accounts: &[AccountInfo], instruction_data: &[u8]) -> Prog
     // Check that `escrow_ata` is owned by `escrow`.
     if TokenAccount::from_account_info(escrow_ata)?.owner() != escrow.key() {
         return Err(ProgramError::IllegalOwner);
+    }
+
+    // Deserialize instruction data.
+    let instruction_data: &FinalizeInstructionData = unsafe { &*instruction_data.as_ptr().cast() };
+
+    // Check the seeds of `escrow`.
+    let escrow_pda = create_program_address(
+        &[
+            ESCROW_SEED.as_bytes(),
+            sender.key(),
+            receiver.key(),
+            &[instruction_data.bump],
+        ],
+        &ID,
+    )?;
+    if escrow.key() != &escrow_pda {
+        return Err(ProgramError::InvalidSeeds);
     }
 
     let data = escrow.try_borrow_data()?;
