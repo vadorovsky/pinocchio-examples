@@ -25,6 +25,10 @@ Pinocchio
 
 A new set of libraries for writing on-chain programs, focused on low CU usage.
 
+* Built by Anza.
+* Written from scratch.
+* Trying to avoid mistakes from the past.
+
 <!-- end_slide -->
 
 Pinocchio vs Anchor
@@ -174,6 +178,43 @@ pinocchio_pubkey::declare_id!("9YxC88EDFbs4a2ypUmKy8HPUFdg1FTnwnZm7358J3w9u");
 ```
 
 You will need it embedded in the program for interacting with PDAs.
+
+<!-- end_slide -->
+
+Discriminators
+==============
+
+It's a common practice to introduce an enum to differentiate program
+instructions.
+
+```rust
+/// Counter program instruction discriminators.
+#[repr(u8)]
+pub enum CounterInstruction {
+    /// Creates/initializes a counter account for the given user.
+    Create,
+    /// Increments a counter.
+    Increment,
+    /// Decrements a counter.
+    Decrement,
+    /// Deletes/closes a counter account.
+    Delete,
+}
+
+impl TryFrom<&u8> for CounterInstruction {
+    type Error = ProgramError;
+
+    fn try_from(value: &u8) -> Result<Self, Self::Error> {
+        match *value {
+            0 => Ok(Self::Create),
+            1 => Ok(Self::Increment),
+            2 => Ok(Self::Decrement),
+            3 => Ok(Self::Delete),
+            _ => Err(ProgramError::InvalidInstructionData),
+        }
+    }
+}
+```
 
 <!-- end_slide -->
 
