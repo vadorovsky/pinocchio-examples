@@ -23,7 +23,6 @@ pinocchio_pubkey::declare_id!("9YxC88EDFbs4a2ypUmKy8HPUFdg1FTnwnZm7358J3w9u");
 pub const COUNTER_SEED: &'static str = "counter";
 
 /// On-chain representation of a counter.
-#[derive(Clone)]
 #[repr(C)]
 pub struct Counter {
     pub owner: Pubkey,
